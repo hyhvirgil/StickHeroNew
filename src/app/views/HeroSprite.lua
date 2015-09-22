@@ -37,6 +37,7 @@ function HeroSprite:start()
 --	self.model_:setDestination(destination)
 --	self:updatePosition()
 	self:playAnimationForever(display.getAnimationCache(self.animationName_))
+		:setTag(self.model_.TAB_YAO)
 	return self
 end
 
@@ -52,15 +53,31 @@ end
 --end
 
 function HeroSprite:playWalkAnimation()
+--	self:stopAllActions()
+	self:stopActionByTag(self.model_.TAB_YAO)
 	self:playAnimationForever(display.getAnimationCache(
 		Config.Res.animation_image[Config.Res.image_walk_index].image))
+	:setTag(self.model_.TAG_WALK)
 	return self
 end
 
 function HeroSprite:playYaoAnimation()
+--	self:stopAllActions()
+--local animate = cc.Animate:create(display.getAnimationCache(
+--	Config.Res.animation_image[Config.Res.image_walk_index].image))
+--local action = cc.RepeatForever:create(animate)
+--self:stopAction(action)
+	self:stopActionByTag(self.model_.TAG_WALK)
 	self:playAnimationForever(display.getAnimationCache(
 		Config.Res.animation_image[Config.Res.image_yao_index].image))
+		:setTag(self.model_.TAB_YAO)
 	return self
+end
+
+function HeroSprite:fallAnimation(callback)
+	local size = self:getContentSize()
+	self:rotateBy({time = 0.5, rotation = 90})
+		:moveTo({time = 0.6, y = -size.height, onComplete = callback})
 end
 
 return HeroSprite

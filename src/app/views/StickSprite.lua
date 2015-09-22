@@ -32,7 +32,7 @@ function StickSprite:getModel()
 end
 
 function StickSprite:rotateToHorizontal(callback)
-	self:rotateBy({time = 0.5, rotation = 90, callback = callback, })
+	self:rotateBy({time = 0.5, rotation = 90, onComplete = callback })
 end
 
 return StickSprite

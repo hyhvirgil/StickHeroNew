@@ -28,5 +28,11 @@ Config.Res = {
 	},
 
 	img_stick = "texture/stick_black.png",
+
+	img_score_bg = "texture/scoreBg.png",
+	img_over_score_bg = "texture/overScoreBg.png",
+
+	img_restart = "texture/restart.png",
+	img_home = "texture/home.png",
 }
 

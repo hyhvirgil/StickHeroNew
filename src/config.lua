@@ -26,3 +26,5 @@ CC_DESIGN_RESOLUTION = {
 }
 
 require "app.config.ConfigResrouce"
+require "app.config.ConfigText"
+require "app.config.ConfigFont"

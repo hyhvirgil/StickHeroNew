@@ -67,6 +67,36 @@ function GameView:stop()
     return self
 end
 
+function GameView:restart()
+    print("Gameview restart")
+    if self.hero_ then
+        self.hero_:removeSelf()
+        self.hero_ = nil
+    end
+    if self.first_platform then
+        self.first_platform:removeSelf()
+        self.first_platform = nil
+    end
+    if self.second_platform then
+        self.second_platform:removeSelf()
+        self.first_platform = nil
+    end
+    if self.stick_ then
+        self.stick_:removeSelf()
+        self.stick_ = nil
+    end
+
+    self:createAll()
+end
+
+function GameView:createAll()
+    self:addPlatform()
+    self:addPlatform()
+    self:addStick()
+    self:addHero()
+end
+
+
 --function GameView:update(dt)
 --    if self.lives_ <= 0 then return end
 --
@@ -118,29 +148,33 @@ function GameView:addHero()
     local hero_model = Hero:create()
     self.hero_ = HeroSprite:create(Config.Res.image_yao_index, hero_model)
         :start()
-        :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT)
+        :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT - 1)
         :setAnchorPoint(display.RIGHT_BOTTOM)
         :addTo(self)
 
     return self
 end
 
+function GameView:after_platform_setup()
+    self.can_touch_ = true
+end
+
 function GameView:addPlatform()
+    local platform_model = Platform:create()
     if self.first_platform then
-        local function after_platform_setup()
-            self.can_touch_ = true
-        end
         local size = self.first_platform:getContentSize()
-        local platform_model = Platform:create()
         self.second_platform = PlatformSprite:create(platform_model)
-            :transformToNewPlatform(display.width - size.width, after_platform_setup)
+            :transformToNewPlatform(display.width - size.width, function() self:after_platform_setup() end)
             :addTo(self)
     else
-        self.first_platform = display.newSprite(Config.Res.img_stick, GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT,
-            { rect = cc.rect(0, 0, GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT), scale9 = true, })
-            :setAnchorPoint(display.RIGHT_TOP)
+        self.first_platform = PlatformSprite:create(platform_model)
             :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT)
             :addTo(self)
+--        self.first_platform = display.newSprite(Config.Res.img_stick, GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT,
+--            { rect = cc.rect(0, 0, GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT), scale9 = true, })
+--            :setAnchorPoint(display.RIGHT_TOP)
+--            :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT)
+--            :addTo(self)
     end
     return self
 end
@@ -193,7 +227,7 @@ function GameView:onCreate()
 --    self.kills_ = 0
 --    self.bugs_ = {}
 --    self.addBugInterval_ = 0
---
+    print("onCreate")
     self.stick_state = GameView.STICK_STATE.VERTICAL
     -- add touch layer
 --    display.newLayer()
@@ -252,10 +286,7 @@ function GameView:onCreate()
         display.setAnimationCache(data.image, animation)
     end
 
-    self:addHero()
-    self:addPlatform()
-    self:addStick()
-    self:addPlatform()
+    self:createAll()
     -- bind the "event" component
     cc.bind(self, "event")
 end
@@ -302,22 +333,56 @@ function GameView:touchEnd(touch, event)
     print("touchEnd", self.schedulerId)
     self.can_touch_ = false
 
-    if self.schedulerId then
-        SCHEDULER:unscheduleScriptEntry(self.schedulerId)
-        self.schedulerId = nil
-    end
+    self:cancelSchedule()
+
     self.stick_:rotateToHorizontal(function() self:crossToSecondPlatform() end)
 end
 
 function GameView:crossToSecondPlatform()
     self.hero_:playWalkAnimation()
     local hero_model = self.hero_:getModel()
+    local hero_init_pos = cc.p(self.hero_:getPosition())
+    local hero_size = self.hero_:getContentSize()
+
+    local stick_start_pos = cc.p(self.stick_:getPosition())
+    local stick_size = self.stick_:getContentSize()
+    local stick_end_x = stick_start_pos.x + stick_size.height
+
+    local second_platform_size = self.second_platform:getContentSize()
+    local second_platform_pos = cc.p(self.second_platform:getPosition())
 
     local function crossPlatform()
         local hero_pos = cc.p(self.hero_:getPosition())
-        self.hero_:move(hero_pos.x + hero_model:getWalkSpeed(), hero_pos.y)
+        local hero_really_x = hero_pos.x - hero_size.width / 2   -- 人物脚下实际x坐标
+        if hero_really_x >= stick_end_x then
+            if stick_end_x < (second_platform_pos.x - second_platform_size.width) or
+                    stick_end_x > second_platform_pos.x then
+                self:cancelSchedule()
+                self.hero_:fallAnimation(function() self:afterHeroFall() end)
+            elseif hero_pos.x > second_platform_pos.x then
+                self:cancelSchedule()
+                self.hero_:playYaoAnimation()
+                -- 都向左移，棍子回到原位，然后设置可以触摸
+            end
+        end
+        local hero_cur_y = hero_init_pos.y
+        if hero_really_x >= stick_start_pos.x and hero_really_x <= stick_end_x then
+            hero_cur_y = hero_init_pos.y + stick_size.width
+        end
+        self.hero_:move(hero_pos.x + hero_model:getWalkSpeed(), hero_cur_y)
     end
     self.schedulerId = SCHEDULER:scheduleScriptFunc(crossPlatform, 0.01, false)
+end
+
+function GameView:cancelSchedule()
+    if self.schedulerId then
+        SCHEDULER:unscheduleScriptEntry(self.schedulerId)
+        self.schedulerId = nil
+    end
+end
+
+function GameView:afterHeroFall()
+    self:dispatchEvent({name = GameView.events.PLAYER_DEAD_EVENT})
 end
 
 return GameView

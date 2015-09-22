@@ -7,8 +7,11 @@
 
 local Hero = class("Hero")
 
+Hero.TAG_WALK = 1
+Hero.TAB_YAO = 2
+
 function Hero:ctor()
-	self.walk_speed_ = 16
+	self.walk_speed_ = 6
 end
 
 function Hero:getWalkSpeed()
