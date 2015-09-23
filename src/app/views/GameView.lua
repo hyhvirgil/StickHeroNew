@@ -6,9 +6,11 @@ local GameView = class("GameView", cc.load("mvc").ViewBase)
 --local BugAnt    = import("..models.BugAnt")
 --local BugSpider = import("..models.BugSpider")
 local Stick = import("..models.Stick")
+local Platform = import("..models.Platform")
 
 local HeroSprite = import(".HeroSprite")
 local StickSprite = import(".StickSprite")
+local PlatformSprite = import(".PlatformSprite")
 --local BugSprite = import(".BugSprite")
 --local DeadBugSprite = import(".DeadBugSprite")
 
@@ -25,7 +27,7 @@ local StickSprite = import(".StickSprite")
 --GameView.BUG_ANIMATION_TIMES[BugBase.BUG_TYPE_ANT] = 0.15
 --GameView.BUG_ANIMATION_TIMES[BugBase.BUG_TYPE_SPIDER] = 0.1
 GameView.ANIMATION_TIMES = {}
-GameView.ANIMATION_TIMES[Config.Res.image_walk_index] = 0.1
+GameView.ANIMATION_TIMES[Config.Res.image_walk_index] = 0.3
 GameView.ANIMATION_TIMES[Config.Res.image_yao_index] = 0.1
 --GameView.ZORDER_BUG = 100
 --GameView.ZORDER_DEAD_BUG = 50
@@ -40,8 +42,8 @@ GameView.STICK_STATE = {
     OTHER = 3,
 }
 
-GameView.PLATFORM_INIT_WIDTH = 100
-GameView.PLATFORM_INIT_HEIGHT = display.cy
+GameView.PLATFORM_INIT_WIDTH = Platform.MAX_LENGTH
+GameView.PLATFORM_INIT_HEIGHT = Platform.HEIGHT
 
 local SCHEDULER = cc.Director:getInstance():getScheduler()
 
@@ -50,9 +52,9 @@ function GameView:start() print("start GameView = ", GameView)
     local listener = cc.EventListenerTouchOneByOne:create()
 
     listener:setSwallowTouches(true)
-    listener:registerScriptHandler(self.touchBegan, cc.Handler.EVENT_TOUCH_BEGAN)
-    listener:registerScriptHandler(self.touchMove, cc.Handler.EVENT_TOUCH_MOVED)
-    listener:registerScriptHandler(self.touchEnd, cc.Handler.EVENT_TOUCH_ENDED)
+    listener:registerScriptHandler(function(...) return true, self:touchBegan(...) end, cc.Handler.EVENT_TOUCH_BEGAN)
+    listener:registerScriptHandler(function(...) return self:touchMove(...) end, cc.Handler.EVENT_TOUCH_MOVED)
+    listener:registerScriptHandler(function(...) return self:touchEnd(...) end, cc.Handler.EVENT_TOUCH_ENDED)
 
     local eventDispather = cc.Director:getInstance():getEventDispatcher()
     eventDispather:addEventListenerWithFixedPriority(listener, 1)
@@ -112,7 +114,7 @@ end
 --    return self
 --end
 function GameView:addHero()
-    self.hero = HeroSprite:create(Config.Res.image_yao_index, bugModel)
+    self.hero_ = HeroSprite:create(Config.Res.image_yao_index, bugModel)
         :start()
         :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT)
         :setAnchorPoint(display.RIGHT_BOTTOM)
@@ -200,6 +202,7 @@ function GameView:onCreate()
     self.firstNode_ = display.newNode():addTo(self)
     self.secodeNode_ = display.newNode():addTo(self)
 
+    self.can_touch_ = true
 --    -- add lives icon and label
 --    display.newSprite("Star.png")
 --        :move(display.left + 50, display.top - 50)
@@ -264,9 +267,9 @@ end
 -- 触摸事件
 function GameView:touchBegan(touch, event)
     print("touchBegan")
---    if not can_touch then
---        return
---    end
+    if not self.can_touch_ then
+        return false
+    end
 
 --    stick:setPosition(platform[platform.cur].stick:getContentSize().width-3,
 --        init_stick_size.height)
@@ -283,29 +286,31 @@ function GameView:touchBegan(touch, event)
 --            stick:setContentSize(stick_size.width, max_stick_len)
 --        end
 --    end
---    local function addStickLen()
---        local stick_model = self.stick_:getModel()
---        if stick_model:lengthIsMaxLength() then
---            self:touchEnd()
---        else
---            self.stick_:extend()
---        end
---    end
+    local function addStickLen()
+        local stick_model = self.stick_:getModel()
+        if stick_model:lengthIsMaxLength() then
+            self:touchEnd()
+        else
+            self.stick_:extend()
+        end
+    end
 --    print("*** SCHEDULER = ", SCHEDULER)
---    self.schedulerId = SCHEDULER:scheduleScriptFunc(addStickLen, 0.05, false)
+    self.schedulerId = SCHEDULER:scheduleScriptFunc(addStickLen, 0.05, false)
     return true
 end
 
 function GameView:touchMove(touch, event)
-    print("touchMove")
+--    print("touchMove")
 end
 -- 触摸结束
 function GameView:touchEnd(touch, event)
     print("touchEnd")
+    self.can_touch_ = false
 --    --        stick:setContentSize(stick:getContentSize().width, 0)
     if self.schedulerId then
         SCHEDULER:unscheduleScriptEntry(self.schedulerId)
     end
+    self.stick_:rotateToHorizontal(self.hero_:playWalkAnimation())
 --    self:crossStick()
 end
 

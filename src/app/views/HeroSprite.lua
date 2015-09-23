@@ -51,5 +51,17 @@ end
 --	:rotate(self.model_:getRotation())
 --end
 
+function HeroSprite:playWalkAnimation()
+	self:playAnimationForever(display.getAnimationCache(
+		Config.Res.animation_image[Config.Res.image_walk_index].image))
+	return self
+end
+
+function HeroSprite:playYaoAnimation()
+	self:playAnimationForever(display.getAnimationCache(
+		Config.Res.animation_image[Config.Res.image_yao_index].image))
+	return self
+end
+
 return HeroSprite
 

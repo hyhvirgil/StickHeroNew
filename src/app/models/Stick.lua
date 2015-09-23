@@ -11,7 +11,7 @@ Stick.INIT_WIDTH = 5
 Stick.INIT_HEIGHT = 10
 
 function Stick:ctor()
-	self.speed_ = 4
+	self.speed_ = 10
 	self.length_ = 10
 	self.max_length_ = display.width
 end
@@ -19,7 +19,7 @@ end
 --local fixedDeltaTime = 1.0 / 60.0
 function Stick:extend()
 	self.length_ = self.length_ + self.speed_-- * (dt / fixedDeltaTime)
---	print("self.length_ = ", self.length_)
+	print("self.length_ = ", self.length_)
 	return self
 end
 

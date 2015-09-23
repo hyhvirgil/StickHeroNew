@@ -5,9 +5,9 @@
 -- Time: 11:38
 --
 
-local StickSprite = class ("StickSprite", function(pos)
+local StickSprite = class ("StickSprite", function(pos, model)
 	local sprite = display.newSprite(Config.Res.img_stick, pos.x, pos.y,
-		{ rect = cc.rect(0, 0, 5, 10), scale9 = true, })
+		{ rect = cc.rect(0, 0, model.INIT_WIDTH, model.INIT_HEIGHT), scale9 = true, })
 		:setAnchorPoint(display.RIGHT_BOTTOM)
 		:move(pos)
 	return sprite
@@ -29,6 +29,10 @@ end
 
 function StickSprite:getModel()
 	return self.model_
+end
+
+function StickSprite:rotateToHorizontal(callback)
+	self:rotateBy({time = 0.5, rotation = 90, callback = callback, })
 end
 
 return StickSprite
