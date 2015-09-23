@@ -20,9 +20,13 @@ Config.Res = {
 		select = "texture/start_select.png",
 	},
 
+	image_walk_index = 1,
+	image_yao_index = 2,
 	animation_image = {
 		[1] = { image = "texture/walk.png", data = "texture/walk.plist", filename = "z000%d.png", min_index = 1, max_index = 9, },
 		[2] = { image = "texture/yao.png", data = "texture/yao.plist", filename = "d000%d.png", min_index = 1, max_index = 9, },
 	},
+
+	img_stick = "texture/stick_black.png",
 }
 
