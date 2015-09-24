@@ -19,7 +19,7 @@ end
 --local fixedDeltaTime = 1.0 / 60.0
 function Stick:extend()
 	self.length_ = self.length_ + self.speed_-- * (dt / fixedDeltaTime)
-	print("self.length_ = ", self.length_)
+--	print("self.length_ = ", self.length_)
 	return self
 end
 

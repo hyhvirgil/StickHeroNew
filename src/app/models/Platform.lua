@@ -8,9 +8,17 @@
 
 local Platform = class("Platform")
 
-Platform.MAX_LENGTH = display.width / 6
-Platform.MIN_LENGTH = Platform.MAX_LENGTH / 7
+Platform.MAX_WIDTH = display.width / 6
+Platform.MIN_WIDTH = Platform.MAX_WIDTH / 5
 Platform.HEIGHT = display.cy
+Platform.MIN_MARGIN = 10	-- 最小边缘，离另一个平台和屏幕边的最小距离
 
+function Platform:ctor()
+	self.speed_ = 16
+end
+
+function Platform:getSpeed()
+	return self.speed_
+end
 
 return Platform
