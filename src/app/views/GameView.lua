@@ -87,6 +87,7 @@ function GameView:restart()
         self.stick_ = nil
     end
 
+    self:resetScore()
     self:createAll()
 end
 
@@ -97,54 +98,6 @@ function GameView:createAll()
     self:addHero()
 end
 
-
---function GameView:update(dt)
---    if self.lives_ <= 0 then return end
---
---    self.addBugInterval_ = self.addBugInterval_ - dt
---    if self.addBugInterval_ <= 0 then
---        self.addBugInterval_ = math.random(GameView.ADD_BUG_INTERVAL_MIN, GameView.ADD_BUG_INTERVAL_MAX)
---        self:addBug()
---    end
---
---    for _, bug in pairs(self.bugs_) do
---        bug:step(dt)
---        if bug:getModel():getDist() <= 0 then
---            self:bugEnterHole(bug)
---        end
---    end
---    print("dt = ", dt)
---    return self
---end
-
---function GameView:getLives()
---    return self.lives_
---end
---
---function GameView:getKills()
---    return self.kills_
---end
---
---function GameView:addBug()
---    local bugType = BugBase.BUG_TYPE_ANT
---    if math.random(1, 2) % 2 == 0 then
---        bugType = BugBase.BUG_TYPE_SPIDER
---    end
---
---    local bugModel
---    if bugType == BugBase.BUG_TYPE_ANT then
---        bugModel = BugAnt:create()
---    else
---        bugModel = BugSpider:create()
---    end
---
---    local bug = BugSprite:create(GameView.IMAGE_FILENAMES[bugType], bugModel)
---        :start(GameView.HOLE_POSITION)
---        :addTo(self.bugsNode_, GameView.ZORDER_BUG)
---
---    self.bugs_[bug] = bug
---    return self
---end
 function GameView:addHero()
     local hero_model = Hero:create()
     self.hero_ = HeroSprite:create(Config.Res.image_yao_index, hero_model)
@@ -171,11 +124,6 @@ function GameView:addPlatform()
         self.first_platform = PlatformSprite:create(platform_model)
             :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT)
             :addTo(self)
---        self.first_platform = display.newSprite(Config.Res.img_stick, GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT,
---            { rect = cc.rect(0, 0, GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT), scale9 = true, })
---            :setAnchorPoint(display.RIGHT_TOP)
---            :move(GameView.PLATFORM_INIT_WIDTH, GameView.PLATFORM_INIT_HEIGHT)
---            :addTo(self)
     end
     return self
 end
@@ -187,41 +135,6 @@ function GameView:addStick()
 
     return self
 end
-
---function GameView:bugEnterHole(bug)
---    self.bugs_[bug] = nil
---
---    bug:fadeOut({time = 0.5, removeSelf = true})
---        :scaleTo({time = 0.5, scale = 0.3})
---        :rotateTo({time = 0.5, rotation = math.random(360, 720)})
---
---    self.lives_ = self.lives_ - 1
---    self.livesLabel_:setString(self.lives_)
---    audio.playSound("BugEnterHole.wav")
---
---    if self.lives_ <= 0 then
---        self:dispatchEvent({name = GameView.events.PLAYER_DEAD_EVENT})
---    end
---
---    return self
---end
---
---function GameView:bugDead(bug)
---    local imageFilename = GameView.IMAGE_FILENAMES[bug:getModel():getType()]
---    DeadBugSprite:create(imageFilename)
---        :fadeOut({time = 2.0, delay = 0.5, removeSelf = true})
---        :move(bug:getPosition())
---        :rotate(bug:getRotation() + 120)
---        :addTo(self.bugsNode_, GameView.ZORDER_DEAD_BUG)
---
---    self.bugs_[bug] = nil
---    bug:removeSelf()
---
---    self.kills_ = self.kills_ + 1
---    audio.playSound("BugDead.wav")
---
---    return self
---end
 
 function GameView:onCreate()
 --    self.lives_ = GameView.INIT_LIVES
@@ -248,13 +161,15 @@ function GameView:onCreate()
 
     self.can_touch_ = false
     self.schedulerIdArray = {}
+    self.score = 0
 --    -- add lives icon and label
---    display.newSprite("Star.png")
---        :move(display.left + 50, display.top - 50)
---        :addTo(self)
---    self.livesLabel_ = cc.Label:createWithSystemFont(self.lives_, "Arial", 32)
---        :move(display.left + 90, display.top - 50)
---        :addTo(self)
+    local score_bg = display.newSprite(Config.Res.img_score_bg)
+        :move(display.cx, display.height / 3 * 2)
+        :addTo(self)
+    local score_bg_size = score_bg:getContentSize()
+    self.label_score = cc.Label:createWithSystemFont(""..self.score, Config.Font.default, 32)
+        :move(score_bg_size.width / 2, score_bg_size.height / 2)
+        :addTo(score_bg)
 
     -- create animation for bugs
     for index, data in pairs(Config.Res.animation_image) do
@@ -368,6 +283,7 @@ function GameView:crossToSecondPlatform()
                 self:cancelSchedule()
                 self.hero_:playYaoAnimation()
                 -- 都向左移，棍子回到原位，然后设置可以触摸
+                self:addScore()
                 self:allMoveToLeft()
                 return
             end
@@ -410,15 +326,15 @@ function GameView:allMoveToLeft()
         self.stick_:reset(size.width, size.height)
     end
 
-    self:fixedMoveToLeft(self.hero_, distance)
+    self:fixedMoveToLeft(self.hero_, distance, after_move_to_left)
     self:fixedMoveToLeft(self.first_platform, distance)
     self:fixedMoveToLeft(self.second_platform, distance)
-    self:fixedMoveToLeft(self.stick_, distance, after_move_to_left)
+    self:fixedMoveToLeft(self.stick_, distance)
 end
 
-function GameView:fixedMoveToLeft(obj, fixed_distance, callback)
+function GameView:fixedMoveToLeft(obj, distance, callback)
     local pos = cc.p(obj:getPosition())
-    local target_x = pos.x - fixed_distance
+    local target_x = pos.x - distance
     self.schedulerIdArray[obj] = SCHEDULER:scheduleScriptFunc(
         function() return self:moveToLeft(obj, target_x, callback) end, 0.01, false)
     return self
@@ -438,6 +354,16 @@ function GameView:moveToLeft(obj, target_x, callback)
         end
     end
     obj:move(pos.x - GameView.ALL_MOVE_SPEED, pos.y)
+end
+
+function GameView:addScore()
+    self.score = self.score + 1
+    self.label_score:setString(self.score)
+end
+
+function GameView:resetScore()
+    self.score = 0
+    self.label_score:setString(self.score)
 end
 
 return GameView
