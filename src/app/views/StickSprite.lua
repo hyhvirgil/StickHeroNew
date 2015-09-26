@@ -35,4 +35,11 @@ function StickSprite:rotateToHorizontal(callback)
 	self:rotateBy({time = 0.5, rotation = 90, onComplete = callback })
 end
 
+function StickSprite:reset(x, y)
+	self:move(x, y)
+	self:rotate(0)
+	self:setContentSize(self.model_.INIT_WIDTH, self.model_.INIT_HEIGHT)
+	self.model_:resetLength()
+end
+
 return StickSprite

@@ -30,6 +30,7 @@ local PlatformSprite = import(".PlatformSprite")
 GameView.ANIMATION_TIMES = {}
 GameView.ANIMATION_TIMES[Config.Res.image_walk_index] = 0.3
 GameView.ANIMATION_TIMES[Config.Res.image_yao_index] = 0.1
+GameView.ALL_MOVE_SPEED = 10
 --GameView.ZORDER_BUG = 100
 --GameView.ZORDER_DEAD_BUG = 50
 
@@ -79,7 +80,7 @@ function GameView:restart()
     end
     if self.second_platform then
         self.second_platform:removeSelf()
-        self.first_platform = nil
+        self.second_platform = nil
     end
     if self.stick_ then
         self.stick_:removeSelf()
@@ -164,7 +165,7 @@ function GameView:addPlatform()
     if self.first_platform then
         local size = self.first_platform:getContentSize()
         self.second_platform = PlatformSprite:create(platform_model)
-            :transformToNewPlatform(display.width - size.width, function() self:after_platform_setup() end)
+            :transformToNewPlatform(size.width, function() self:after_platform_setup() end)
             :addTo(self)
     else
         self.first_platform = PlatformSprite:create(platform_model)
@@ -246,6 +247,7 @@ function GameView:onCreate()
 --    self.secodeNode_ = display.newNode():addTo(self)
 
     self.can_touch_ = false
+    self.schedulerIdArray = {}
 --    -- add lives icon and label
 --    display.newSprite("Star.png")
 --        :move(display.left + 50, display.top - 50)
@@ -354,15 +356,20 @@ function GameView:crossToSecondPlatform()
     local function crossPlatform()
         local hero_pos = cc.p(self.hero_:getPosition())
         local hero_really_x = hero_pos.x - hero_size.width / 2   -- 人物脚下实际x坐标
-        if hero_really_x >= stick_end_x then
+        if hero_pos.x >= stick_end_x then
             if stick_end_x < (second_platform_pos.x - second_platform_size.width) or
                     stick_end_x > second_platform_pos.x then
                 self:cancelSchedule()
                 self.hero_:fallAnimation(function() self:afterHeroFall() end)
-            elseif hero_pos.x > second_platform_pos.x then
+                return
+            elseif hero_really_x >= (second_platform_pos.x - second_platform_size.width)
+                and hero_pos.x > second_platform_pos.x then
+                self.hero_:setPosition(hero_pos.x, hero_init_pos.y)
                 self:cancelSchedule()
                 self.hero_:playYaoAnimation()
                 -- 都向左移，棍子回到原位，然后设置可以触摸
+                self:allMoveToLeft()
+                return
             end
         end
         local hero_cur_y = hero_init_pos.y
@@ -383,6 +390,54 @@ end
 
 function GameView:afterHeroFall()
     self:dispatchEvent({name = GameView.events.PLAYER_DEAD_EVENT})
+end
+
+function GameView:allMoveToLeft()
+    local second_platform_size = self.second_platform:getContentSize()
+    local second_platform_pos = cc.p(self.second_platform:getPosition())
+    local distance = second_platform_pos.x - second_platform_size.width
+
+    local function after_move_to_left()
+        local size1 = self.first_platform:getContentSize()
+        local size2 = self.second_platform:getContentSize()
+        local temp = self.first_platform
+        self.first_platform = self.second_platform
+        self.second_platform = temp
+
+        local size = self.first_platform:getContentSize()
+        self.second_platform:transformToNewPlatform(size.width, function() self:after_platform_setup() end)
+
+        self.stick_:reset(size.width, size.height)
+    end
+
+    self:fixedMoveToLeft(self.hero_, distance)
+    self:fixedMoveToLeft(self.first_platform, distance)
+    self:fixedMoveToLeft(self.second_platform, distance)
+    self:fixedMoveToLeft(self.stick_, distance, after_move_to_left)
+end
+
+function GameView:fixedMoveToLeft(obj, fixed_distance, callback)
+    local pos = cc.p(obj:getPosition())
+    local target_x = pos.x - fixed_distance
+    self.schedulerIdArray[obj] = SCHEDULER:scheduleScriptFunc(
+        function() return self:moveToLeft(obj, target_x, callback) end, 0.01, false)
+    return self
+end
+
+function GameView:moveToLeft(obj, target_x, callback)
+    local pos = cc.p(obj:getPosition())
+    if pos.x - GameView.ALL_MOVE_SPEED <= target_x then
+        obj:move(target_x, pos.y)
+        if self.schedulerIdArray[obj] then
+            SCHEDULER:unscheduleScriptEntry(self.schedulerIdArray[obj])
+            self.schedulerIdArray[obj] = nil
+        end
+        if callback then
+            callback()
+            return
+        end
+    end
+    obj:move(pos.x - GameView.ALL_MOVE_SPEED, pos.y)
 end
 
 return GameView

@@ -12,7 +12,7 @@ Stick.INIT_HEIGHT = 10
 
 function Stick:ctor()
 	self.speed_ = 10
-	self.length_ = 10
+	self.length_ = Stick.INIT_HEIGHT
 	self.max_length_ = display.width
 end
 
@@ -25,6 +25,10 @@ end
 
 function Stick:getLength()
 	return self.length_
+end
+
+function Stick:resetLength()
+	self.length_ = Stick.INIT_HEIGHT
 end
 
 function Stick:lengthIsMaxLength()

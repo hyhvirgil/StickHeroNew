@@ -20,10 +20,14 @@ function PlatformSprite:ctor(model)
 	self.scheduler = cc.Director:getInstance():getScheduler()
 end
 
+function PlatformSprite:getModel()
+	return self.model_
+end
+
 -- 创建
-function PlatformSprite:transformToNewPlatform(surplus_distance, callback)
+function PlatformSprite:transformToNewPlatform(start_x, callback)
 	self:resetRandomWidth()
-	self:randomMoveToLeft(surplus_distance, callback)
+	self:randomMoveToLeft(start_x, callback)
 	return self
 end
 
@@ -34,31 +38,30 @@ function PlatformSprite:resetRandomWidth()
 	return self
 end
 -- 随机位置左移
-function PlatformSprite:randomMoveToLeft(surplus_distance, callback)
-	local distance = math.random(self.model_.MIN_MARGIN * 2, surplus_distance)
-	local pos = cc.p(self:getPosition())
-	self.target_x = pos.x - self.model_.MIN_MARGIN - distance
-	self.schedulerId = self.scheduler:scheduleScriptFunc(function() return self:moveToLeft(callback) end, 0.01, false)
+function PlatformSprite:randomMoveToLeft(start_x, callback)
+	local target_x = math.random(start_x + self.model_.MIN_MARGIN, display.width - self.model_.MIN_MARGIN)
+	self.schedulerId = self.scheduler:scheduleScriptFunc(function() return self:moveToLeft(target_x, callback) end, 0.01, false)
 	return self
 end
 -- 固定位置左移
-function PlatformSprite:fixedMoveToLeft(fixed_distance, callback)
-	local pos = cc.p(self:getPosition())
-	self.target_x = pos.x - fixed_distance
-	self.schedulerId = self.scheduler:scheduleScriptFunc(function() return self:moveToLeft(callback) end, 0.01, false)
-	return self
-end
+--function PlatformSprite:fixedMoveToLeft(fixed_distance, callback)
+--	local pos = cc.p(self:getPosition())
+--	target_x = pos.x - fixed_distance
+--	self.schedulerId = self.scheduler:scheduleScriptFunc(function() return self:moveToLeft(callback) end, 0.01, false)
+--	return self
+--end
 
-function PlatformSprite:moveToLeft(callback)
+function PlatformSprite:moveToLeft(target_x, callback)
 	local pos = cc.p(self:getPosition())
-	if pos.x - self.model_:getSpeed() <= self.target_x then
-		self:move(self.target_x, pos.y)
+	if pos.x - self.model_:getSpeed() <= target_x then
+		self:move(target_x, pos.y)
 		if self.schedulerId then
 			self.scheduler:unscheduleScriptEntry(self.schedulerId)
 			self.schedulerId = nil
 		end
 		if callback then
 			callback()
+			return
 		end
 	end
 	self:move(pos.x - self.model_:getSpeed(), pos.y)
