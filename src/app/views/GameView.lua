@@ -305,7 +305,7 @@ function GameView:cancelSchedule()
 end
 
 function GameView:afterHeroFall()
-    self:dispatchEvent({name = GameView.events.PLAYER_DEAD_EVENT})
+    self:dispatchEvent({name = GameView.events.PLAYER_DEAD_EVENT, score = self.score})
 end
 
 function GameView:allMoveToLeft()

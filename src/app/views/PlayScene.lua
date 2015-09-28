@@ -33,8 +33,8 @@ function PlayScene:onPlayerDead(event)
         :move(score_bg_size.width / 2, score_bg_size.height / 2 + 50)
 --        :align(display.CENTER, cc.p(score_bg_pos.x, score_bg_pos.y))
         :addTo(score_bg)
-    local text_score_num = "10"
-    cc.Label:createWithSystemFont(text_score_num, Config.Font.default, 50)
+
+    cc.Label:createWithSystemFont(event.score, Config.Font.default, 50)
         :setTextColor(cc.c3b(0, 0, 0))
 --        :setAnchorPoint(display.CENTER)
         :move(score_bg_size.width / 2, score_bg_size.height / 2 - 50)
